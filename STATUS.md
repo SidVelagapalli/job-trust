@@ -1,6 +1,12 @@
 # Status — where we left off
 
-_Last updated: 2026-10-03_
+_Last updated: 2026-10-06_
+
+## Setup session (2026-10-06): Build & Ship workstream
+- `CLAUDE.md` updated and committed: session routine, 5 Checks, evaluation rules, stop-and-ask, roadmap.
+- Workstream hub `~/Documents/Claude-Workstreams/03-build/CLAUDE.md` rewritten (BUILD_RULES + project
+  table + a copy of this repo's CLAUDE.md). Old version kept there as `CLAUDE.old.md`.
+- No project work done this session. Task Set 4.5 is unchanged (see below).
 
 ## Done
 - **Task Set 1** — `notebooks/01_explore.ipynb`: data exploration (17,880 postings, 4.84% fake).
@@ -31,6 +37,10 @@ The code still uses the single 0.4 threshold (`flagged`). Nothing zone-related i
 ## Open questions for the owner
 - Keep the missing-logo test from Task Set 4 in Part B? (Suggested: yes.)
 - Write "Why this/these thresholds" in `README.md`.
+- `CLAUDE.backup-2026-10-06.md` (untracked): delete it? The old CLAUDE.md is already in git history.
+- `03-build/CLAUDE.old.md`: delete once happy with the new workstream CLAUDE.md.
+- `~/cs320-coach` has no STATUS.md or CLAUDE.md yet (BUILD_RULES rule 11).
+- Set the Anthropic Console monthly spend cap before Task Set 8.
 
 ## Known findings to remember
 - A hand-written modern scam (Madison Tech, "ML and RAG pipeline…") scored **0.1172** — missed;
@@ -46,7 +56,7 @@ The code still uses the single 0.4 threshold (`flagged`). Nothing zone-related i
 cd ~/job-trust
 claude --continue            # reopen the last conversation, or: claude --resume
 ```
-Or start fresh with: _"Read CLAUDE.md and STATUS.md, then continue Task Set 4.5."_
+Or start fresh with: _"Read CLAUDE.md and STATUS.md, then continue Task Set 4.5 Part A."_
 
 Run the API: `.venv/bin/uvicorn src.api:app --reload` → http://127.0.0.1:8000/docs
 Run tests: `.venv/bin/pytest`
