@@ -1,6 +1,21 @@
 # Status — where we left off
 
-_Last updated: 2026-10-06_
+_Last updated: 2026-10-17_
+
+## Session 2026-10-17: Rung 4 (agent), fast-track
+- Claude Code now runs on the Pro plan (`/login`). `ANTHROPIC_API_KEY` was set in `~/.zshrc`; it
+  overrides the Pro login if still exported. Paid `src.agent` runs need that key (put it in `.env` or export it in that terminal only).
+- Whole-rung plan for Rung 4 approved (one approval). Branch `rung4-agent` created.
+- **Task set A done**, commit `99133d4`: `src/tools.py`, `tests/test_tools_and_rules.py` (both copied word for word from SPEC),
+  `examples/scam.txt` + `real.txt`, `anthropic` + `httpx` in requirements.txt, `logs/` in .gitignore, `notes.md`.
+  Reviewer: nothing serious. Old 5 tests pass; new test file errors at import until decide.py exists.
+- **Paused at:** Siddarth writes `src/decide.py` (it was NOT found on disk this session).
+  Done when `.venv/bin/pytest -q` shows 15 passed.
+- **Next (pre-approved, no new OK needed):** Task set B: `src/agent.py`, `src/workflow.py`,
+  `tests/test_agent_loop.py` copied word for word, pytest = 17 passed, then `python -m src.workflow examples/scam.txt`
+  (free network calls, no LLM; Siddarth OK'd it), reviewer, commit, 3 lines in notes.md.
+- Reviewer's minor notes for Siddarth: SPEC line 27 wording ("tool tests pass") is wrong while decide.py is missing;
+  `age_from_rdap` can raise on a date with no timezone (caught by `check_domain_age`); requirements are unpinned.
 
 ## Setup session (2026-10-06): Build & Ship workstream
 - `CLAUDE.md` updated and committed: session routine, 5 Checks, evaluation rules, stop-and-ask, roadmap.
@@ -56,7 +71,8 @@ The code still uses the single 0.4 threshold (`flagged`). Nothing zone-related i
 cd ~/job-trust
 claude --continue            # reopen the last conversation, or: claude --resume
 ```
-Or start fresh with: _"Read CLAUDE.md and STATUS.md, then continue Task Set 4.5 Part A."_
+Or start fresh with: _"Read CLAUDE.md, SPEC.md and STATUS.md. decide.py is done (15 passed): run Task set B."_
+Note: SPEC says Rung 4's decide.py covers Task Set 4.5 Part B.
 
 Run the API: `.venv/bin/uvicorn src.api:app --reload` → http://127.0.0.1:8000/docs
 Run tests: `.venv/bin/pytest`
