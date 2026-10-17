@@ -5,13 +5,31 @@ and ghost-job risk (rule-based, clearly labeled as rules).
 ## How to work with me
 - I am a complete ML beginner. Explain every concept in plain English
   the first time it appears.
-- Before writing or changing any file, explain what you'll do and why,
-  then wait for my OK.
+- Before each rung, explain the plan and wait for my OK (see "Fast-track mode" below).
 - Ask before installing any package. Tell me what it's for.
 - Never make changes silently. After each step, summarize what changed.
 - Prefer simple, readable code over clever code. Comment the "why."
 - Keep data/ out of git (add it to .gitignore).
 - Call me Siddarth. Be direct; if I'm avoiding a decision or a hard step, say so.
+
+## Fast-track mode (Oct 2026 sprint) - overrides "wait for my OK before each file" (one approval per rung)
+For this repo, this section overrides the per-file approval rule in HOW-I-WORK.md:
+- Get my OK ONCE PER RUNG: in plan mode, show the plan for the whole rung (every task set in SPEC.md
+  "Order of work", which subagents run in parallel, what you'll run). After I approve, build every
+  task set in order without asking again.
+- After EACH task set, run the reviewer subagent automatically. If it reports a serious problem, stop and
+  tell me. Otherwise fix minor issues, commit on the rung's branch, and continue.
+- When you reach a file SPEC.md marks "Siddarth writes this", don't sit idle: build every task set that
+  doesn't depend on it, then stop and tell me exactly which tests my file must pass.
+- At the end of the rung, show me the 5 Checks for the whole rung plus every reviewer report.
+- Run independent files in parallel with subagents, following SPEC.md "Order of work". Use the project
+  agents in .claude/agents/ (test-writer, reviewer, security-reviewer, explorer).
+- NEVER create or edit a file SPEC.md marks "Siddarth writes this". If it's missing, stop and tell me.
+- Still stop and ask for everything under "Stop and ask", and before running anything that calls a paid API.
+- Before every commit run the reviewer subagent; before I push, run security-reviewer. I push, not you.
+- When a task set is done, add 3 short lines to notes.md: what was built, the one concept I should be
+  able to explain from it, and a question to quiz me on.
+- SPEC.md (Rungs 4 and 5) is the source of truth for this sprint. Task Set 4.5 Part B is done by Rung 4's decide.py.
 
 ## Stack
 Python, pandas, scikit-learn, Jupyter notebooks for exploration.
