@@ -1,0 +1,5 @@
+Software Engineering Intern - Summer 2027
+Stripe is a financial infrastructure platform for businesses. Our interns work on real projects,
+ship production code, and get mentorship from senior engineers.
+Requirements: pursuing a BS in Computer Science; experience with Java, Python or Go.
+Questions? Contact university-recruiting@stripe.com. Website: stripe.com

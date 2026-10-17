@@ -17,3 +17,6 @@ venv/
 .DS_Store
 .vscode/
 .idea/
+
+# Agent run logs (may contain posting text)
+logs/
