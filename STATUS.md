@@ -1,6 +1,22 @@
 # Status — where we left off
 
-_Last updated: 2026-10-17_
+_Last updated: 2026-10-22_
+
+## Session 2026-10-21/22: Rung 4, Task set B
+- `src/decide.py` done (commit `ba0a90b`). Claude wrote it at Siddarth's request; Siddarth accepted this
+  exception to SPEC's "Siddarth writes this" (noted in notes.md).
+- **Task set B done**, commit `8e99fd9`: `src/agent.py`, `src/workflow.py`, `tests/test_agent_loop.py`
+  (verbatim from SPEC, byte-checked by reviewer). `pytest -q` = 17 passed.
+  Free workflow run: `scam.txt` -> scam, `real.txt` -> likely_real.
+- Reviewer minor notes (all from SPEC, not changed, Siddarth's call): `workflow.py` SITE_RE misses bare
+  domains ("Visit acme.com"); `explain()` assumes first reply block is text; no MAX_STEPS test; a repeated
+  tool call overwrites the earlier result. Also: an unregistered domain (scam.txt's) adds no red flag.
+- **Paused at:** real agent run `python -m src.agent examples/scam.txt` (paid, ~1 cent, Siddarth OK'd).
+  Needs `ANTHROPIC_API_KEY=...` in `.env` (gitignored, not created yet); run with
+  `set -a; source .env; set +a; .venv/bin/python -m src.agent examples/scam.txt`. Model `claude-haiku-4-5` not yet confirmed available.
+- **Next (Siddarth):** real runs, break-it experiments in notes.md, README "Agent" section edit,
+  security-reviewer, push. Then Task set C (Rung 5, branch `rung5-mcp`).
+- Project agents in `.claude/agents/` only load when Claude Code is started inside `~/job-trust`.
 
 ## Session 2026-10-17: Rung 4 (agent), fast-track
 - Claude Code now runs on the Pro plan (`/login`). `ANTHROPIC_API_KEY` was set in `~/.zshrc`; it
