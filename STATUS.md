@@ -11,9 +11,13 @@ _Last updated: 2026-10-22_
 - Reviewer minor notes (all from SPEC, not changed, Siddarth's call): `workflow.py` SITE_RE misses bare
   domains ("Visit acme.com"); `explain()` assumes first reply block is text; no MAX_STEPS test; a repeated
   tool call overwrites the earlier result. Also: an unregistered domain (scam.txt's) adds no red flag.
-- **Paused at:** real agent run `python -m src.agent examples/scam.txt` (paid, ~1 cent, Siddarth OK'd).
-  Needs `ANTHROPIC_API_KEY=...` in `.env` (gitignored, not created yet); run with
-  `set -a; source .env; set +a; .venv/bin/python -m src.agent examples/scam.txt`. Model `claude-haiku-4-5` not yet confirmed available.
+- **Real agent run on scam.txt: SCAM** (acceptance met for that file; `claude-haiku-4-5` works; ~1 cent).
+  Claude ran all 3 checks in step 0. Note: the explanation cites "no careers page" / "domain not found",
+  which decide.py deliberately ignores; worth a break-it experiment.
+- **API key:** stays in `~/.zshrc` (Siddarth's choice, shared across projects); no `.env`. The `claude` alias
+  strips it, so paid runs load it per command:
+  `export $(grep '^export ANTHROPIC_API_KEY=' ~/.zshrc | sed 's/^export //; s/"//g') && .venv/bin/python -m src.agent examples/real.txt`
+- **Paused at:** real run on `real.txt` (expect LIKELY_REAL), not run yet.
 - **Next (Siddarth):** real runs, break-it experiments in notes.md, README "Agent" section edit,
   security-reviewer, push. Then Task set C (Rung 5, branch `rung5-mcp`).
 - Project agents in `.claude/agents/` only load when Claude Code is started inside `~/job-trust`.
