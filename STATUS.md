@@ -1,6 +1,18 @@
 # Status — where we left off
 
-_Last updated: 2026-10-22_
+_Last updated: 2026-10-23_
+
+## Session 2026-10-23: Rung 4 break-it experiments
+- **Experiments 1-5 done**, written up in `notes.md` under "Experiments (Siddarth)" (3 paid runs, about 3 cents total):
+  1. real.txt -> LIKELY_REAL. 2. Injection (`examples/scam_injected.txt`) -> stayed SCAM, explanation not fooled.
+  3. MAX_STEPS = 1 -> SCAM, cap logged (src/agent.py restored, diff clean). 4. Dead proxy -> no crash, tools return errors.
+  5. Workflow vs agent -> same verdicts and same checks on both examples.
+- **Findings:**
+  - The explanation overstates the evidence: it cites careers page / domain issues that decide.py ignores,
+    and in run 1 it called a `found: False` careers page "confirming legitimacy".
+  - A network error in `check_careers_page` looks like "not found" (it reports no error).
+- **Paused at:** Siddarth fills the 5 "Why (Siddarth):" lines in notes.md, then KICKOFF step 5
+  (README "Agent" section draft, security-reviewer, Siddarth edits README and pushes).
 
 ## Session 2026-10-21/22: Rung 4, Task set B
 - `src/decide.py` done (commit `ba0a90b`). Claude wrote it at Siddarth's request; Siddarth accepted this
