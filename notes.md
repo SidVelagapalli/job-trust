@@ -29,6 +29,11 @@
 - Concept: the agent loop (ReAct): the model asks for a tool, our code runs it, the result goes back in, repeat until it says DONE or hits MAX_STEPS.
 - Quiz: In `test_agent_loop.py`, why can the test run the full pipeline without an API key, and what does `FakeClient` pretend to do on call 1 vs. call 2?
 
+### Task set C - MCP server (Rung 5)
+- Built: `src/mcp_server.py` (copied word for word from SPEC, mcp 2.3.0): tools `check_posting` (paid) and `score_only` (free), resource `jobtrust://red-flags`, prompt `vet_posting`. It was tested over stdio by calling only `score_only` (scam.txt -> 0.9966).
+- Concept: an MCP server is like the FastAPI `/score` endpoint, but the caller is an AI app, and it talks JSON over the server's stdin/stdout. That's why the server must never `print()` to stdout.
+- Quiz: When Claude Code launches this server, how does it learn what `score_only` does and what inputs it takes, without reading the Python code?
+
 ## Experiments (Siddarth)
 <!-- traces, injection test, MAX_STEPS=1 / Wi-Fi off, workflow-vs-agent table -->
 Runs on 2026-10-23, claude-haiku-4-5, about 1 cent per agent run.

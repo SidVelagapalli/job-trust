@@ -2,6 +2,20 @@
 
 _Last updated: 2026-10-23_
 
+## Session 2026-10-23 (later): Rung 5, Task set C
+- Branch `rung5-mcp` was created from `rung4-agent` (Siddarth's OK, even though SPEC says "after Rung 4 is merged").
+  It carries the 7 unmerged Rung 4 commits: merge Rung 4 first.
+- Installed `mcp[cli]` (mcp 2.3.0, pre-approved) and added it to requirements.txt (not pinned).
+- `src/mcp_server.py` copied word for word from SPEC (byte-checked). A stdio client lists `check_posting` + `score_only`,
+  resource `jobtrust://red-flags` and prompt `vet_posting`. `score_only(scam.txt)` = 0.9966. pytest = 17 passed. Reviewer: nothing serious.
+- Reviewer notes (Siddarth's call):
+  - Pin `mcp[cli]>=2.3,<3`; the import only exists in 2.x.
+  - The result comes back as JSON text (`structured_content` is None).
+  - `score_only` adds "no company logo" and "no company profile" to every pasted posting (defaults in predict.py).
+  - The `vet_posting` prompt calls the paid tool.
+- **Not done (Siddarth):** `mcp dev src/mcp_server.py` Inspector test; `claude mcp add ...` (see KICKOFF step 6); `check_posting` over MCP (paid).
+- **Still open from Rung 4:** the 5 "Why (Siddarth):" lines, then KICKOFF step 5 (README, security-reviewer, merge, push).
+
 ## Session 2026-10-23: Rung 4 break-it experiments
 - **Experiments 1-5 done**, written up in `notes.md` under "Experiments (Siddarth)" (3 paid runs, about 3 cents total):
   1. real.txt -> LIKELY_REAL. 2. Injection (`examples/scam_injected.txt`) -> stayed SCAM, explanation not fooled.

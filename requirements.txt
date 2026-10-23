@@ -8,3 +8,4 @@ pytest
 openai
 anthropic
 httpx
+mcp[cli]
