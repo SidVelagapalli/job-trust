@@ -8,4 +8,4 @@ pytest
 openai
 anthropic
 httpx
-mcp[cli]
+mcp[cli]>=2.3,<3
