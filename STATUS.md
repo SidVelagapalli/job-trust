@@ -2,6 +2,23 @@
 
 _Last updated: 2026-10-27_
 
+## Session 2026-10-27 (later): security fixes, branch `security-fixes` (worktree `~/job-trust-fixes`)
+- **Done** (one commit, not pushed, not merged): the 4 security-reviewer findings.
+  - `check_careers_page` (src/tools.py): resolves the host first and refuses private/loopback/link-local IPs;
+    redirects followed by hand, same site + https:443 only, IP re-checked each hop, max 5; body capped at 1 MB
+    (`Accept-Encoding: identity`); every request failing on the network -> `{"error": "network failure"}`.
+  - `strip_posting_tags` (src/agent.py), used in `gather_evidence` and the MCP `vet_posting` prompt (now fenced + labelled).
+  - EXPLAIN prompt cites only `rules_fired`. requirements.txt: direct deps pinned with `==` (mcp stays `>=2.3,<3`).
+  - `tests/test_security_fixes.py`: 23 offline tests. pytest = **40 passed**. decide.py untouched.
+  - Reviewer: nothing serious (minor issues fixed). Security-reviewer: SAFE TO PUSH.
+- **Open for Siddarth:**
+  - Push `security-fixes` and merge it (your call). README Limitations still says "network error looks like not found"; update it after merge.
+  - Follow-ups (low, not done): no overall time limit on a slow-drip careers page; a server can ignore
+    `identity` and send gzip anyway (stop if `content-encoding` isn't identity); NAT64 `64:ff9b::/96` counts as public;
+    DNS rebinding; transitive deps unpinned; look-alike `＜/posting＞` not stripped.
+  - Quiz Q13 added to `~/Desktop/claude-reviews/QUIZ.md`.
+- **Resume:** `cd ~/job-trust-fixes && ~/job-trust/.venv/bin/pytest -q`, then push / open a PR.
+
 ## Session 2026-10-27: clean-up and ship Rungs 4 + 5
 - **Rung 4 (agent) and Rung 5 (MCP server) are done.** Both are on `main` (fast-forwarded to `b0e3b55`); this clean-up is committed on `main`.
 - README: new "Agent" section (pipeline diagram, rules table 0.79 / 0.12 and 180 / 730 days, injection and
