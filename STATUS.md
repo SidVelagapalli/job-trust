@@ -1,6 +1,24 @@
 # Status — where we left off
 
-_Last updated: 2026-10-23_
+_Last updated: 2026-10-27_
+
+## Session 2026-10-27: clean-up and ship Rungs 4 + 5
+- **Rung 4 (agent) and Rung 5 (MCP server) are done.** Both are on `main` (fast-forwarded to `b0e3b55`); this clean-up is committed on `main`.
+- README: new "Agent" section (pipeline diagram, rules table 0.79 / 0.12 and 180 / 730 days, injection and
+  no-network results) and "MCP server" section (tools, resource, prompt, `claude mcp add` line). Limitations now
+  include:
+  - the explanation can overstate the evidence;
+  - a careers-page network error looks like "not found";
+  - the agent has been tested on only 2 postings.
+- `requirements.txt`: `mcp[cli]>=2.3,<3` pinned. `CLAUDE.backup-2026-10-06.md` moved to `~/Desktop`.
+- notes.md: quiz lines removed. Quizzes now live in `~/Desktop/claude-reviews/QUIZ.md` (the new CLAUDE.md rule).
+- **Cut from this application round:** PatchPilot and PhishLens.
+- **Open for Siddarth:**
+  - The "Why (Siddarth):" lines in notes.md: experiments 4 and 5 are blank, and 1 and 3 say "not sure".
+  - The README "Why this threshold" section is still a TODO.
+  - Not run yet: the Inspector test (`mcp dev`) and `claude mcp add`.
+  - Push this clean-up commit. Rungs 4 + 5 (`b0e3b55`) are already on GitHub. Security-reviewer (2026-10-27): PASS, findings below.
+  - Before the public deploy (Task Set 5): fix the SSRF in `check_careers_page` (redirects + internal hosts, tools.py:107-118), wrap the posting in `vet_posting`, and add a call limit on `check_posting`.
 
 ## Session 2026-10-23 (later): Rung 5, Task set C
 - Branch `rung5-mcp` was created from `rung4-agent` (Siddarth's OK, even though SPEC says "after Rung 4 is merged").
