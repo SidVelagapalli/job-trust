@@ -5,13 +5,19 @@ and NEVER raises. If something goes wrong it returns {"error": "..."} so the age
 carry on and the model can explain what it couldn't check.
 """
 
+import ipaddress
 import re
+import socket
 from datetime import datetime, timezone
 
 import httpx
 
 TIMEOUT = 8.0  # seconds; a slow website shouldn't freeze the agent
 HEADERS = {"User-Agent": "JobTrust/1.0 (student project; contact via GitHub)"}
+# identity = "don't compress": a tiny gzip reply can unpack to gigabytes, which would dodge the 1 MB cap.
+PAGE_HEADERS = {**HEADERS, "Accept-Encoding": "identity"}
+MAX_PAGE_BYTES = 1_000_000  # read at most 1 MB of a careers page: a huge page shouldn't eat memory
+MAX_REDIRECTS = 5           # follow at most this many same-site redirects
 
 FREE_WEBMAIL = {
     "gmail.com", "googlemail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com",
@@ -98,6 +104,65 @@ def title_words(title: str) -> list[str]:
     return [w for w in re.findall(r"[a-z]+", (title or "").lower()) if len(w) >= 4]
 
 
+def resolve_ips(host: str) -> list[str]:
+    """DNS lookup: 'acme.com' -> ['93.184.216.34', ...]. Raises OSError if the name doesn't resolve."""
+    return [info[4][0] for info in socket.getaddrinfo(host, 443, proto=socket.IPPROTO_TCP)]
+
+
+def is_public_host(host: str) -> bool:
+    """True only if EVERY address the host resolves to is on the public internet.
+
+    The domain comes from an untrusted posting, so a scammer could point it at 127.0.0.1 (this machine),
+    10.x.x.x (a home/office network) or 169.254.169.254 (cloud secrets). is_global is False for all of
+    those (private, loopback, link-local, reserved), so we refuse them before sending any request.
+    """
+    ips = resolve_ips(host)
+    return bool(ips) and all(ipaddress.ip_address(ip.split("%")[0]).is_global for ip in ips)
+
+
+def make_client() -> httpx.Client:
+    """One place that builds the HTTP client, so tests can swap in a fake network.
+    follow_redirects=False: fetch_page follows redirects itself, only within the same site."""
+    return httpx.Client(timeout=TIMEOUT, headers=PAGE_HEADERS, follow_redirects=False)
+
+
+class Refused(Exception):
+    """A redirect tried to send us to another site or to a private address."""
+
+
+def fetch_page(client: httpx.Client, url: str, domain: str) -> tuple[int, str]:
+    """GET a page, following redirects only while they stay on `domain`, reading at most 1 MB.
+
+    acme.com/careers -> www.acme.com/careers is fine (same site); -> evil.com raises Refused.
+    Every hop is checked with is_public_host, because www.acme.com could resolve somewhere else.
+    """
+    for _ in range(MAX_REDIRECTS + 1):
+        parsed = httpx.URL(url)
+        host = parsed.host
+        if parsed.scheme != "https" or parsed.port not in (None, 443):
+            raise Refused("redirect away from https on the normal port")
+        if normalize_domain(host) != domain:
+            raise Refused("redirect to another site")
+        if not is_public_host(host):
+            raise Refused("private or local address")
+        with client.stream("GET", url) as reply:
+            if reply.is_redirect and "location" in reply.headers:
+                url = str(reply.url.join(reply.headers["location"]))
+                continue
+            body = b""
+            for chunk in reply.iter_bytes():   # stream: stop reading once we have 1 MB
+                body += chunk
+                if len(body) >= MAX_PAGE_BYTES:
+                    break
+            body = body[:MAX_PAGE_BYTES]
+            try:
+                text = body.decode(reply.encoding or "utf-8", errors="replace")
+            except LookupError:  # the site named a charset Python doesn't know: fall back to utf-8
+                text = body.decode("utf-8", errors="replace")
+            return reply.status_code, text
+    raise Refused("too many redirects")
+
+
 def check_careers_page(company_domain: str, job_title: str) -> dict:
     """Fetch the company's careers page and look for the job title's words on it.
 
@@ -108,19 +173,34 @@ def check_careers_page(company_domain: str, job_title: str) -> dict:
     words = title_words(job_title)
     if not domain or not words:
         return {"error": "need a valid company domain and a job title"}
-    for path in ("/careers", "/jobs", "/careers/", "/about/careers"):
-        url = f"https://{domain}{path}"
-        try:
-            reply = httpx.get(url, timeout=TIMEOUT, follow_redirects=True, headers=HEADERS)
-        except Exception:
-            continue
-        if reply.status_code == 200:
-            page = reply.text.lower()
-            hits = [w for w in words if w in page]
-            return {
-                "reachable": True,
-                "checked_url": url,
-                "title_words_found": f"{len(hits)}/{len(words)}",
-                "found": len(hits) >= max(1, round(len(words) * 0.66)),
-            }
+    try:
+        if not is_public_host(domain):
+            return {"error": "refused: domain resolves to a private or local address"}
+    except Exception:  # DNS lookup failed: we can't reach anything on this domain
+        return {"error": "network failure"}
+
+    paths = ("/careers", "/jobs", "/careers/", "/about/careers")
+    network_errors = 0
+    with make_client() as client:
+        for path in paths:
+            url = f"https://{domain}{path}"
+            try:
+                status, text = fetch_page(client, url, domain)
+            except (httpx.TransportError, OSError):  # timeout, connection refused, DNS, ...
+                network_errors += 1
+                continue
+            except Exception:  # Refused, bad encoding, ...: this path is a dead end, try the next
+                continue
+            if status == 200:
+                page = text.lower()
+                hits = [w for w in words if w in page]
+                return {
+                    "reachable": True,
+                    "checked_url": url,
+                    "title_words_found": f"{len(hits)}/{len(words)}",
+                    "found": len(hits) >= max(1, round(len(words) * 0.66)),
+                }
+    if network_errors == len(paths):
+        # Every request failed to connect: that says nothing about the careers page, so don't pretend it does.
+        return {"error": "network failure"}
     return {"reachable": False, "found": None, "note": "no careers page reachable at common paths"}
