@@ -169,11 +169,25 @@ both tools, the resource and the prompt, and `score_only` on `examples/scam.txt`
 - **The agent's explanation can overstate the evidence.** The verdict comes from fixed rules, but Claude's
   explanation sometimes cites evidence the rules ignore. It has listed "no careers page" and "domain not found" as
   reasons, and once called a careers page where the job wasn't found "further confirming legitimacy".
-- **A network error in `check_careers_page` looks like "not found".** If the site can't be reached, the tool
-  reports "no careers page reachable" without an error, which looks the same as a site with no careers page.
-  The rules ignore "not found" today, so the verdict isn't affected.
+  The prompt now limits reasons to `rules_fired`; not yet re-tested with a real run.
 - **The agent has been tested on only 2 postings** (`examples/scam.txt`, `examples/real.txt`, plus the
   injected copy). There's no eval set yet (Task Set 6), so there are no accuracy numbers for the agent.
+
+## Security
+
+Job postings are written by strangers, so the tools treat them as untrusted.
+
+- **The careers-page check refuses private machines.** Before fetching, it looks up the domain and
+  refuses private, local and cloud-secret addresses (like 169.254.169.254). It follows redirects only to
+  the same domain or its `www.` version (https, port 443, at most 5 hops) and re-checks the address on
+  each hop. It keeps at most 1 MB of a page. If no request gets through at all, it reports a network
+  error instead of "not found". (The address is checked before the request, not pinned for it, so a
+  DNS answer that changes in between could slip through.)
+- **The posting is fenced off in prompts.** The agent and the MCP `vet_posting` prompt put the posting
+  between `<posting>` tags, label it as untrusted data, and strip any `<posting>` tags hidden inside it.
+- **Explanations are told to stick to the rules that fired.** Claude is told to give only the rules in
+  `rules_fired` as reasons. Evidence that fired no rule should be mentioned at most as "couldn't be
+  confirmed". Not yet re-tested (see Limitations).
 
 ## Why this threshold
 
