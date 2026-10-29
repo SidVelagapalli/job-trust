@@ -1,6 +1,25 @@
 # Status — where we left off
 
-_Last updated: 2026-10-27_
+_Last updated: 2026-10-29_
+
+## Session 2026-10-29: merge security fixes, README Security section (Rungs 4 + 5 ready to push)
+- `security-fixes` fast-forwarded into `main` (no conflict); pytest = **40 passed**.
+- README (`0899b15`): removed the "network error looks like not found" limitation; new "Security" section
+  (SSRF guard, fenced posting, explanations told to use `rules_fired`). Reviewer: nothing serious; its 4 wording
+  overclaims fixed (DNS rebinding named, "if no request gets through at all", www./https/443/5 hops, "told to").
+- Security-reviewer on `origin/main..main` + README: **SAFE TO PUSH**. No secrets/data in the push.
+  Findings, all low or already open: DNS rebinding; compressed reply can exceed 1 MB in memory before the cut;
+  slow-drip has no total timeout; transitive deps unpinned; look-alike tags; no call/spend limit on `check_posting`
+  over MCP; README:144 shows `/Users/Siddarth/...` (harmless, `<repo>/` is cleaner).
+- Worktree `~/job-trust-fixes` removed, branch `security-fixes` deleted. CLAUDE.md and notes.md left uncommitted (Siddarth editing).
+- **Open for Siddarth:**
+  - Local branches `rung4-agent` and `rung5-mcp` are merged into main: delete them if you like (`git branch -d`).
+  - Push `main` (4 commits ahead of origin, incl. this STATUS commit). Commit your notes.md / CLAUDE.md edits separately.
+  - Before the public deploy (Task Set 5): call limit on `check_posting`, total timeout, refuse non-identity
+    `content-encoding`, DNS rebinding (pin the checked IP).
+  - Still open: "Why (Siddarth):" lines in notes.md, README "Why this threshold", `mcp dev` / `claude mcp add`,
+    one paid re-run to check the EXPLAIN fix.
+- **Resume:** `cd ~/job-trust && .venv/bin/pytest -q`, then `git push`.
 
 ## Session 2026-10-27 (later): security fixes, branch `security-fixes` (worktree `~/job-trust-fixes`)
 - **Done** (one commit, not pushed, not merged): the 4 security-reviewer findings.
