@@ -1,5 +1,7 @@
 # Job Trust Score
 
+**New here? Read [How it works, in plain English](docs/HOW-IT-WORKS.md).**
+
 Scores a job posting for two kinds of risk:
 
 - **Scam risk** — a trained machine-learning model estimates how likely the posting is fraudulent.
