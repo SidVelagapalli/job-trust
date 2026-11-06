@@ -172,7 +172,7 @@ def fetch_page(client: httpx.Client, url: str, domain: str, deadline: float | No
             for chunk in reply.iter_bytes():   # stream: stop reading once we have 1 MB
                 body += chunk
                 if len(body) >= MAX_PAGE_BYTES:
-                    continue  # a later path may still list it
+                    break
                 if time.monotonic() > deadline:  # slow-drip server: give up instead of waiting forever
                     raise TimeoutError("careers page download took too long")
             body = body[:MAX_PAGE_BYTES]
