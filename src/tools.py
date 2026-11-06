@@ -8,6 +8,7 @@ carry on and the model can explain what it couldn't check.
 import ipaddress
 import re
 import socket
+import time
 from datetime import datetime, timezone
 
 import httpx
@@ -18,6 +19,10 @@ HEADERS = {"User-Agent": "JobTrust/1.0 (student project; contact via GitHub)"}
 PAGE_HEADERS = {**HEADERS, "Accept-Encoding": "identity"}
 MAX_PAGE_BYTES = 1_000_000  # read at most 1 MB of a careers page: a huge page shouldn't eat memory
 MAX_REDIRECTS = 5           # follow at most this many same-site redirects
+# TIMEOUT only limits each single wait; a server dripping 1 byte every 7 s never trips it.
+# This budgets the whole careers-page check (all paths and redirects together). It's soft:
+# checked between steps, and DNS lookups aren't covered, so a bad case can run a few seconds over.
+TOTAL_SECONDS = 20.0
 
 FREE_WEBMAIL = {
     "gmail.com", "googlemail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com",
@@ -130,13 +135,21 @@ class Refused(Exception):
     """A redirect tried to send us to another site or to a private address."""
 
 
-def fetch_page(client: httpx.Client, url: str, domain: str) -> tuple[int, str]:
+class Compressed(Refused):
+    """The server answered, but compressed; we don't unpack it (zip-bomb risk). The page exists, unread."""
+
+
+def fetch_page(client: httpx.Client, url: str, domain: str, deadline: float | None = None) -> tuple[int, str]:
     """GET a page, following redirects only while they stay on `domain`, reading at most 1 MB.
 
     acme.com/careers -> www.acme.com/careers is fine (same site); -> evil.com raises Refused.
     Every hop is checked with is_public_host, because www.acme.com could resolve somewhere else.
+    `deadline` (a time.monotonic() value): past it, stop with TimeoutError, even mid-download.
     """
+    deadline = deadline if deadline is not None else time.monotonic() + TOTAL_SECONDS
     for _ in range(MAX_REDIRECTS + 1):
+        if time.monotonic() > deadline:
+            raise TimeoutError("careers page check took too long")
         parsed = httpx.URL(url)
         host = parsed.host
         if parsed.scheme != "https" or parsed.port not in (None, 443):
@@ -145,15 +158,23 @@ def fetch_page(client: httpx.Client, url: str, domain: str) -> tuple[int, str]:
             raise Refused("redirect to another site")
         if not is_public_host(host):
             raise Refused("private or local address")
-        with client.stream("GET", url) as reply:
+        # Each wait (connect, headers, a chunk) gets at most what's left of the budget, not a fresh 8 s.
+        wait = min(TIMEOUT, max(0.1, deadline - time.monotonic()))
+        with client.stream("GET", url, timeout=wait) as reply:
             if reply.is_redirect and "location" in reply.headers:
                 url = str(reply.url.join(reply.headers["location"]))
                 continue
+            # We asked for identity (uncompressed). A server that compresses anyway could send a tiny
+            # "zip bomb" that httpx unpacks in memory before our 1 MB cut, so refuse it unread.
+            if reply.headers.get("content-encoding", "identity").strip().lower() not in ("identity", ""):
+                raise Compressed("server sent a compressed reply")
             body = b""
             for chunk in reply.iter_bytes():   # stream: stop reading once we have 1 MB
                 body += chunk
                 if len(body) >= MAX_PAGE_BYTES:
                     break
+                if time.monotonic() > deadline:  # slow-drip server: give up instead of waiting forever
+                    raise TimeoutError("careers page download took too long")
             body = body[:MAX_PAGE_BYTES]
             try:
                 text = body.decode(reply.encoding or "utf-8", errors="replace")
@@ -181,12 +202,22 @@ def check_careers_page(company_domain: str, job_title: str) -> dict:
 
     paths = ("/careers", "/jobs", "/careers/", "/about/careers")
     network_errors = 0
+    compressed = False
+    deadline = time.monotonic() + TOTAL_SECONDS  # one budget shared by all 4 paths
     with make_client() as client:
         for path in paths:
             url = f"https://{domain}{path}"
             try:
-                status, text = fetch_page(client, url, domain)
-            except (httpx.TransportError, OSError):  # timeout, connection refused, DNS, ...
+                status, text = fetch_page(client, url, domain, deadline)
+            except TimeoutError:
+                # Our own time budget ran out, so the remaining paths were never checked. That's not
+                # evidence about the company, so report it as an error rather than "no careers page".
+                # (Checked before OSError: TimeoutError is a kind of OSError.)
+                return {"error": "timed out before the careers page could be checked"}
+            except Compressed:  # the server answered: a page may be there, we just won't unpack it
+                compressed = True
+                continue
+            except (httpx.TransportError, OSError):  # connection refused, DNS, httpx timeout, ...
                 network_errors += 1
                 continue
             except Exception:  # Refused, bad encoding, ...: this path is a dead end, try the next
@@ -203,4 +234,7 @@ def check_careers_page(company_domain: str, job_title: str) -> dict:
     if network_errors == len(paths):
         # Every request failed to connect: that says nothing about the careers page, so don't pretend it does.
         return {"error": "network failure"}
+    if compressed:
+        return {"reachable": True, "found": None,
+                "note": "site answered with compressed pages, which we don't read for safety; job not checked"}
     return {"reachable": False, "found": None, "note": "no careers page reachable at common paths"}
