@@ -2,6 +2,8 @@
 
 from types import SimpleNamespace
 
+import pytest
+
 from src.agent import check_posting, run_tool
 
 
@@ -31,3 +33,10 @@ def test_full_pipeline_with_fake_llm(tmp_path, monkeypatch):
     assert out["evidence"]["check_email_domain"]["free_webmail"] is True
     assert out["trace"][0]["tool"] == "check_email_domain"
     assert (tmp_path / "log.jsonl").exists()
+
+
+def test_real_run_without_model_id_fails_clearly(monkeypatch):
+    # No model name lives in the code, so a real run must stop with a clear message instead.
+    monkeypatch.setattr("src.agent.MODEL", None)
+    with pytest.raises(RuntimeError, match="JOB_TRUST_MODEL"):
+        check_posting("any posting")

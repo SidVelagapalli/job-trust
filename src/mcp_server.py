@@ -34,7 +34,7 @@ RED_FLAGS = """Job Trust red-flag checklist
 # Every check_posting call is a paid Anthropic API call. An MCP client (or an agent stuck in a loop) could call it
 # hundreds of times, so cap it: at most MAX_CALLS_PER_HOUR in any rolling hour, per server process.
 # score_only is free (no LLM), so it has no limit.
-# Cost at the cap: ~1 cent per run (small model) -> at most ~$0.30/hour, ~$7.20/day per server process.
+# Cost at the cap: ~1 cent per run with a small model (a larger JOB_TRUST_MODEL costs more) -> at most ~$0.30/hour, ~$7.20/day per server process.
 # The count lives in memory: a restart resets it (fine for stdio; an HTTP deploy needs a per-user cap).
 MAX_CALLS_PER_HOUR = 30
 _recent_calls: deque[float] = deque()  # time.monotonic() of each recent check_posting call

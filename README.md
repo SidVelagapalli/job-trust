@@ -136,7 +136,7 @@ posting text
 and every check runs. On the two example postings both versions reach the same verdict
 (`examples/scam.txt` → scam, `examples/real.txt` → likely_real) and run the same 3 checks.
 
-**Break-it results** (2026-10-23, Anthropic API, about 1 cent per run):
+**Break-it results** (2026-10-23, a small Anthropic model, about 1 cent per run; cost depends on `JOB_TRUST_MODEL`):
 
 | Test | Result |
 |---|---|
@@ -242,3 +242,7 @@ Then open http://127.0.0.1:8000/docs, click **POST /score → Try it out**, past
 - `src/api.py` — FastAPI app
 - `models/job_trust_v1.joblib` — trained pipeline
 - `tests/` — pytest tests
+
+## Acknowledgments
+
+Built with AI-assisted development tools; the design, decisions, evaluation and review are my own.
