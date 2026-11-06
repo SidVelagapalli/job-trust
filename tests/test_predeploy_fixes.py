@@ -100,3 +100,52 @@ def test_over_limit_check_posting_never_calls_llm(empty_call_log, monkeypatch):
     monkeypatch.setattr(mcp_server, "over_call_limit", lambda: True)
     monkeypatch.setattr(mcp_server, "run_agent", lambda *a, **k: pytest.fail("paid call made over the limit"))
     assert "limit reached" in mcp_server.check_posting("any posting")["error"]
+
+
+# --- 403/429/5xx and httpx timeouts are errors, never "found: False" / "no careers page" ---
+
+def by_path(responses):
+    """Fake site: path -> status code (or an exception to raise); anything else is a 404."""
+    def handler(request):
+        answer = responses.get(request.url.path, 404)
+        if isinstance(answer, type) and issubclass(answer, Exception):
+            raise answer("simulated", request=request)
+        return answer if isinstance(answer, httpx.Response) else httpx.Response(answer)
+    return handler
+
+
+@pytest.mark.parametrize("status", [403, 429, 500, 503])
+def test_blocked_or_down_site_is_an_error(monkeypatch, status):
+    fake_network(monkeypatch, lambda r: httpx.Response(status))
+    out = tools.check_careers_page("acme.com", "Software Engineer")
+    assert f"HTTP {status}" in out["error"] and "found" not in out
+
+
+def test_one_503_among_404s_is_an_error_not_no_careers_page(monkeypatch):
+    fake_network(monkeypatch, by_path({"/careers": 503}))
+    out = tools.check_careers_page("acme.com", "Software Engineer")
+    assert "/careers returned HTTP 503" in out["error"] and "reachable" not in out
+
+
+def test_httpx_read_timeout_among_404s_is_an_error(monkeypatch):
+    fake_network(monkeypatch, by_path({"/careers": httpx.ReadTimeout}))
+    out = tools.check_careers_page("acme.com", "Software Engineer")
+    assert "/careers timed out" in out["error"] and "found" not in out
+
+
+def test_job_missing_after_a_blocked_path_is_an_error_not_found_false(monkeypatch):
+    # /careers is rate-limited, /jobs loads but doesn't list the job: it may be on /careers.
+    fake_network(monkeypatch, by_path({"/careers": 429, "/jobs": httpx.Response(200, text="welcome")}))
+    out = tools.check_careers_page("acme.com", "Software Engineer")
+    assert "error" in out and "found" not in out
+
+
+def test_job_found_after_a_blocked_path_still_counts(monkeypatch):
+    fake_network(monkeypatch, by_path({"/careers": 503, "/jobs": httpx.Response(200, text="software engineer")}))
+    assert tools.check_careers_page("acme.com", "Software Engineer")["found"] is True
+
+
+def test_all_404_is_still_no_careers_page(monkeypatch):
+    fake_network(monkeypatch, by_path({}))
+    out = tools.check_careers_page("acme.com", "Software Engineer")
+    assert out["reachable"] is False and out["found"] is None

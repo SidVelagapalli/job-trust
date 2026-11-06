@@ -172,7 +172,7 @@ def fetch_page(client: httpx.Client, url: str, domain: str, deadline: float | No
             for chunk in reply.iter_bytes():   # stream: stop reading once we have 1 MB
                 body += chunk
                 if len(body) >= MAX_PAGE_BYTES:
-                    break
+                    continue  # a later path may still list it
                 if time.monotonic() > deadline:  # slow-drip server: give up instead of waiting forever
                     raise TimeoutError("careers page download took too long")
             body = body[:MAX_PAGE_BYTES]
@@ -203,6 +203,7 @@ def check_careers_page(company_domain: str, job_title: str) -> dict:
     paths = ("/careers", "/jobs", "/careers/", "/about/careers")
     network_errors = 0
     compressed = False
+    unchecked = []  # paths we couldn't read (blocked, overloaded, timed out): not evidence of "no careers page"
     deadline = time.monotonic() + TOTAL_SECONDS  # one budget shared by all 4 paths
     with make_client() as client:
         for path in paths:
@@ -217,20 +218,31 @@ def check_careers_page(company_domain: str, job_title: str) -> dict:
             except Compressed:  # the server answered: a page may be there, we just won't unpack it
                 compressed = True
                 continue
-            except (httpx.TransportError, OSError):  # connection refused, DNS, httpx timeout, ...
+            except httpx.TimeoutException:  # ReadTimeout, ConnectTimeout, ...: the page may be there, unread
+                unchecked.append(f"{path} timed out")
+                continue
+            except (httpx.TransportError, OSError):  # connection refused, DNS, ...
                 network_errors += 1
                 continue
             except Exception:  # Refused, bad encoding, ...: this path is a dead end, try the next
                 continue
+            if status in (403, 429) or status >= 500:  # bot block, rate limit, server down: we learned nothing
+                unchecked.append(f"{path} returned HTTP {status}")
+                continue
             if status == 200:
                 page = text.lower()
                 hits = [w for w in words if w in page]
+                found = len(hits) >= max(1, round(len(words) * 0.66))
+                if not found and unchecked:  # the job may be on a path we couldn't read
+                    continue  # a later path may still list it
                 return {
                     "reachable": True,
                     "checked_url": url,
                     "title_words_found": f"{len(hits)}/{len(words)}",
-                    "found": len(hits) >= max(1, round(len(words) * 0.66)),
+                    "found": found,
                 }
+    if unchecked:
+        return {"error": "careers page couldn't be checked: " + "; ".join(unchecked)}
     if network_errors == len(paths):
         # Every request failed to connect: that says nothing about the careers page, so don't pretend it does.
         return {"error": "network failure"}
