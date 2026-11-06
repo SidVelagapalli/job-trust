@@ -64,6 +64,30 @@ Final model (v1), evaluated once on the held-out test set (3,214 postings, 144 f
 For comparison, a "model" that calls everything real scores 95.5% accuracy and catches 0% of
 scams — which is why accuracy is not used here.
 
+### Model v2 (decided, not wired in yet)
+
+**Decision:** ship v2 (calibrated LinearSVC on words + character 3–5-grams + the five yes/no fields, `C=1`)
+at its threshold **0.289**, picked from cross-validated training predictions as the highest recall with
+precision ≥ 0.80. The API still serves v1 @ 0.4 until `predict.py` is switched over.
+
+Same test set (3,214 postings: 144 fake, 3,070 real), scored once for this comparison (`notebooks/05_v2.ipynb`,
+`results/test_v1_vs_v2.csv`):
+
+| Model | Threshold | Precision | Recall | PR-AUC | Scams caught | False alarms | False alarms per 1,000 real |
+|---|---|---|---|---|---|---|---|
+| v1 (shipped) | 0.4 | 64.9% | 83.3% | 0.857 | 120 / 144 | 65 | 21 |
+| v1 at precision ≥ 0.80 | 0.618 | 81.2% | 77.8% | 0.857 | 112 / 144 | 26 | 8 |
+| **v2** | **0.289** | **79.9%** | **79.9%** | **0.867** | **115 / 144** | **29** | **9** |
+
+What this does and doesn't show:
+- **v2 ≈ v1 at the same precision target.** Test recall 79.9% vs 77.8% is 3 scams out of 144, inside the
+  noise. Cross-validated recall on the training set: 0.824 ± 0.028 vs 0.791 ± 0.033 (v2 better on 5 of 5 folds).
+- **The main gain vs the shipped v1 is fewer false alarms:** 21 → 9 per 1,000 real postings, at the cost
+  of 5 fewer scams caught (120 → 115). Most of that comes from the higher threshold, not the new model
+  (v1 at its own precision-0.80 threshold gets 8 per 1,000).
+- v2's test precision (79.9%) is just under the 0.80 target it was tuned for.
+- The test set has now been used three times. Further changes are judged on the real-world eval set instead.
+
 ## Agent
 
 `src/agent.py` puts the model inside a small agent. The ML model scores the posting, an LLM picks
