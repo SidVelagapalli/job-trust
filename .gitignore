@@ -20,3 +20,6 @@ venv/
 
 # Agent run logs (may contain posting text)
 logs/
+
+# Model v2 (4.2 MB): kept local, not committed (2026-11-06)
+models/job_trust_v2.joblib
